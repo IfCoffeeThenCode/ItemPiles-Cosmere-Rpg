@@ -1,7 +1,8 @@
 import getCurrency from "./currency.js";
 
 Hooks.once('item-piles-ready', async function() {
-	const currencies =  await getCurrency();
+	const currencies = await getCurrency();
+
     const config = {
 		"VERSION": "1.2.0",
         "ACTOR_CLASS_TYPE": "adversary",
@@ -20,6 +21,16 @@ Hooks.once('item-piles-ready', async function() {
         ],
 		"UNSTACKABLE_ITEM_TYPES": ["weapon", "armor"],
 
+		// Read the denomination-normalized price (baseValue, in marks) rather than the raw
+		// price.value, so items priced in broams or gem-denominations display correctly.
+		// baseValue is a derived field set by prepareDerivedData; it is accessible on the
+		// live Item document but not via toObject(), so we must read it here via getProperty.
+		"ITEM_COST_TRANSFORMER": (item) => {
+			return foundry.utils.getProperty(item, "system.price.baseValue")
+				?? foundry.utils.getProperty(item, "system.price.value")
+				?? 0;
+		},
+
 		"SHEET_OVERRIDES": () => {
 			const sheetOverrides = Object.keys(CONFIG.Actor.sheetClasses).map(str => {
 			    return Object.keys(CONFIG.Actor.sheetClasses[str]).map(sheet => {
@@ -29,7 +40,12 @@ Hooks.once('item-piles-ready', async function() {
 
 			const method = function (wrapped, forced, options, ...args) {
 				const renderItemPileInterface = Hooks.call(game.itempiles.CONSTANTS.HOOKS.PRE_RENDER_SHEET, this.document, forced, options) === false;
-				if (this._state > Application.RENDER_STATES.NONE) {
+				// Application.RENDER_STATES is legacy (Foundry v12 / ApplicationV1).
+				// In Foundry v13 ApplicationV2 sheets this constant does not exist, so we
+				// guard with optional chaining to avoid a TypeError.
+				const RENDER_STATES = Application?.RENDER_STATES ?? {};
+				const NONE = RENDER_STATES.NONE ?? -1;
+				if (this._state > NONE) {
 					if (renderItemPileInterface) {
 						wrapped(forced, options, ...args)
 					} else {

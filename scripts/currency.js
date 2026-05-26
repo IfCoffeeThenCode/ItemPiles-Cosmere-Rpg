@@ -7,7 +7,12 @@ const denominations = new Map([
 const sphereCompendiums = ["cosmere-rpg-stormlight-handbook.items", "cosmere-rpg.items"];
 
 export default async function getCurrency() {
-    return await getCompendiumSpheres() ?? getManualSpheres();
+    try {
+        return await getCompendiumSpheres() ?? getManualSpheres();
+    } catch(err) {
+        console.error("ItemPiles | Cosmere RPG | Failed to load compendium currencies, using manual spheres:", err);
+        return getManualSpheres();
+    }
 }
 
 function getManualSpheres() {
@@ -67,13 +72,19 @@ async function getCompendiumSpheres() {
         const pack = game.packs.get(compendium);
         if(!pack) continue;
 
-        const spheres = pack._getVisibleTreeContents().filter(x => x.type === "loot");
+        // Use pack.index (always populated) instead of the private _getVisibleTreeContents()
+        // which returns pack.contents and may be empty if the pack has not been opened.
+        const spheres = pack.index.filter(x => x.type === "loot");
 
         const currencies = []
         for(const sphere of spheres) {
 
             const itemData = await fromUuid(sphere.uuid);
-            if(!itemData.system.isMoney) continue;
+            if(!itemData?.system?.isMoney) continue;
+
+            // Use baseValue (denomination-normalized price in marks) as the exchange rate
+            // so that spheres priced in any denomination convert correctly.
+            const exchangeRate = itemData.system.price.baseValue ?? itemData.system.price.value;
 
             currencies.push({
                 type: "item",
@@ -82,7 +93,7 @@ async function getCompendiumSpheres() {
                 abbreviation: "{#}mk",
                 data: { uuid:  sphere.uuid },
                 primary: Boolean(sphere.name === "Diamond Mark"),
-                exchangeRate: itemData.system.price.value,
+                exchangeRate,
             });
         }
         if(currencies.length > 0) return currencies;
