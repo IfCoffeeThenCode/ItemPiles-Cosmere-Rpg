@@ -11,7 +11,7 @@ Hooks.once('ready', async function() {
 
 Hooks.once('item-piles-ready', function() {
     const config = {
-		"VERSION": "1.2.0",
+		"VERSION": "1.2.1",
         "ACTOR_CLASS_TYPE": "adversary",
         "ITEM_CLASS_LOOT_TYPE": "loot",
         "ITEM_CLASS_WEAPON_TYPE": "weapon",
