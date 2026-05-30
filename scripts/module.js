@@ -1,19 +1,15 @@
-import getCurrency from "./currency.js";
+import getCurrency, { getManualSpheres } from "./currency.js";
 
-// Load currencies during the Foundry ready phase so the value is available
-// synchronously when item-piles-ready fires. ItemPiles calls registerSystemLibwrappers()
-// immediately after Hooks.callAll('item-piles-ready'), so any await inside the
-// item-piles-ready handler runs too late — the integration must be registered synchronously.
-let _currencies;
+// Initialize currencies synchronously at module load so they are guaranteed to be present
+// when item-piles-ready fires. ItemPiles calls registerSystemLibwrappers() immediately after
+// Hooks.callAll('item-piles-ready'), so any await inside that handler runs too late.
+// getManualSpheres() is synchronous and covers all sphere denominations without compendium I/O.
+let _currencies = getManualSpheres();
 Hooks.once('ready', async function() {
 	_currencies = await getCurrency();
 });
 
 Hooks.once('item-piles-ready', function() {
-	// _currencies may still be loading if the compendium fetch took longer than the
-	// 100ms ItemPiles waits after ready before firing item-piles-ready. Fall back to
-	// an empty array so addSystemIntegration always receives a valid value; currencies
-	// can be corrected by reloading if needed, but pricing will still work via ITEM_PRICE_ATTRIBUTE.
     const config = {
 		"VERSION": "1.2.0",
         "ACTOR_CLASS_TYPE": "adversary",

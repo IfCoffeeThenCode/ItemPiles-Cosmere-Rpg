@@ -15,7 +15,7 @@ export default async function getCurrency() {
     }
 }
 
-function getManualSpheres() {
+export function getManualSpheres() {
     const toItems = (gems, baseValue) => {
         const items = [];
         for(const gem of gems) {
